@@ -37,31 +37,23 @@ const BookingSchema = new Schema<IBooking>(
 );
 
 // Pre-save hook to validate event exists before creating booking
-BookingSchema.pre('save', async function (next) {
+BookingSchema.pre('save', async function () {
   const booking = this as IBooking;
 
   // Only validate eventId if it's new or modified
   if (booking.isModified('eventId') || booking.isNew) {
-    try {
-      // Ensure we are connected to the database before querying
-      const { connectToDatabase } = await import('@/lib/mongodb');
-      await connectToDatabase();
+    // Ensure we are connected to the database before querying
+    const { connectToDatabase } = await import('@/lib/mongodb');
+    await connectToDatabase();
 
-      const eventExists = await Event.findById(booking.eventId).select('_id');
+    const eventExists = await Event.findById(booking.eventId).select('_id');
 
-      if (!eventExists) {
-        const error = new Error(`Event with ID ${booking.eventId} does not exist`);
-        error.name = 'ValidationError';
-        return next(error);
-      }
-    } catch {
-      const validationError = new Error('Invalid event ID format or database error');
-      validationError.name = 'ValidationError';
-      return next(validationError);
+    if (!eventExists) {
+      const error = new Error(`Event with ID ${booking.eventId} does not exist`);
+      error.name = 'ValidationError';
+      throw error;
     }
   }
-
-  next();
 });
 
 // Create index on eventId for faster queries
