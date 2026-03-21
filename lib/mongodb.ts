@@ -56,11 +56,16 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
 
   // Initiate a new connection only if one is not already in progress.
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI, {
-      // Disable Mongoose's internal command buffering so that operations
-      // fail fast if called before the connection is ready.
-      bufferCommands: false,
-    });
+    cached.promise = mongoose
+      .connect(MONGODB_URI, {
+        // Disable Mongoose's internal command buffering so that operations
+        // fail fast if called before the connection is ready.
+        bufferCommands: false,
+      })
+      .catch((error) => {
+        cached.promise = null;
+        throw error;
+      });
   }
 
   // Await the pending connection and persist it in the cache.
